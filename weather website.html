@@ -1,0 +1,834 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dark Weather · 10‑Day Forecast & Air Quality</title>
+  <style>
+    /* ---------- GLOBAL DARK THEME ---------- */
+    :root {
+      --bg: #0b0f14;
+      --surface: #151b23;
+      --surface-2: #1e2630;
+      --text: #e6edf3;
+      --text-dim: #8b949e;
+      --accent: #58a6ff;
+      --danger: #f85149;
+      --warning: #d29922;
+      --success: #3fb950;
+      --radius: 14px;
+      --font: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font);
+      line-height: 1.5;
+      min-height: 100vh;
+      padding: 20px;
+      display: flex;
+      justify-content: center;
+    }
+
+    .app {
+      width: 100%;
+      max-width: 1100px;
+    }
+
+    /* ---------- HEADER / SEARCH ---------- */
+    header {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+
+    .logo {
+      font-size: 1.6rem;
+      font-weight: 700;
+      color: var(--accent);
+      margin-right: auto;
+    }
+
+    .search-box {
+      display: flex;
+      gap: 8px;
+      flex: 1 1 260px;
+      max-width: 420px;
+    }
+
+    .search-box input {
+      flex: 1;
+      padding: 10px 14px;
+      border: 1px solid var(--surface-2);
+      border-radius: var(--radius);
+      background: var(--surface);
+      color: var(--text);
+      font-size: 0.95rem;
+      outline: none;
+      transition: border 0.2s;
+    }
+
+    .search-box input:focus {
+      border-color: var(--accent);
+    }
+
+    button {
+      padding: 10px 18px;
+      border: none;
+      border-radius: var(--radius);
+      background: var(--accent);
+      color: #0b0f14;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.2s;
+    }
+
+    button:hover {
+      opacity: 0.85;
+    }
+
+    button:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+
+    /* ---------- LOCATION BAR ---------- */
+    .location-bar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 20px;
+      font-size: 0.95rem;
+      color: var(--text-dim);
+    }
+
+    .location-bar .city {
+      font-size: 1.4rem;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .btn-ghost {
+      background: transparent;
+      border: 1px solid var(--surface-2);
+      color: var(--text);
+      padding: 8px 14px;
+    }
+
+    /* ---------- CARDS GRID ---------- */
+    .grid {
+      display: grid;
+      gap: 16px;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      margin-bottom: 24px;
+    }
+
+    .card {
+      background: var(--surface);
+      border-radius: var(--radius);
+      padding: 18px 20px;
+      border: 1px solid var(--surface-2);
+    }
+
+    .card h2 {
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--text-dim);
+      margin-bottom: 10px;
+    }
+
+    .big-temp {
+      font-size: 3.2rem;
+      font-weight: 700;
+      line-height: 1.1;
+    }
+
+    .big-temp span {
+      font-size: 1.2rem;
+      font-weight: 400;
+      color: var(--text-dim);
+    }
+
+    .detail-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 6px 0;
+      border-bottom: 1px solid var(--surface-2);
+    }
+
+    .detail-row:last-child {
+      border-bottom: none;
+    }
+
+    .detail-row span:first-child {
+      color: var(--text-dim);
+    }
+
+    /* ---------- AIR QUALITY ---------- */
+    .aqi-badge {
+      display: inline-block;
+      padding: 6px 14px;
+      border-radius: 999px;
+      font-weight: 700;
+      font-size: 1.1rem;
+      margin-bottom: 10px;
+    }
+
+    .aqi-good { background: #1a3a1a; color: #3fb950; }
+    .aqi-fair { background: #3a331a; color: #d29922; }
+    .aqi-moderate { background: #3a2a1a; color: #f0883e; }
+    .aqi-poor { background: #3a1a1a; color: #f85149; }
+
+    /* ---------- ALERTS ---------- */
+    .alert-item {
+      display: flex;
+      gap: 10px;
+      padding: 10px 12px;
+      border-radius: 10px;
+      background: var(--surface-2);
+      margin-bottom: 8px;
+      font-size: 0.9rem;
+      border-left: 4px solid var(--warning);
+    }
+
+    .alert-item.severe {
+      border-left-color: var(--danger);
+    }
+
+    .alert-item .icon {
+      font-size: 1.2rem;
+    }
+
+    .no-alerts {
+      color: var(--success);
+      font-size: 0.9rem;
+    }
+
+    /* ---------- 10-DAY FORECAST ---------- */
+    .forecast-section h2 {
+      margin-bottom: 14px;
+      font-size: 1.1rem;
+      color: var(--text);
+    }
+
+    .forecast-scroll {
+      display: flex;
+      gap: 12px;
+      overflow-x: auto;
+      padding-bottom: 10px;
+      scrollbar-width: thin;
+      scrollbar-color: var(--surface-2) transparent;
+    }
+
+    .forecast-scroll::-webkit-scrollbar {
+      height: 6px;
+    }
+
+    .forecast-scroll::-webkit-scrollbar-thumb {
+      background: var(--surface-2);
+      border-radius: 3px;
+    }
+
+    .day-card {
+      flex: 0 0 110px;
+      background: var(--surface);
+      border: 1px solid var(--surface-2);
+      border-radius: var(--radius);
+      padding: 14px 10px;
+      text-align: center;
+      transition: border-color 0.2s;
+    }
+
+    .day-card:hover {
+      border-color: var(--accent);
+    }
+
+    .day-card .day-name {
+      font-size: 0.8rem;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .day-card .day-icon {
+      font-size: 1.8rem;
+      margin: 8px 0;
+    }
+
+    .day-card .day-high {
+      font-size: 1.1rem;
+      font-weight: 700;
+    }
+
+    .day-card .day-low {
+      font-size: 0.85rem;
+      color: var(--text-dim);
+    }
+
+    .day-card .day-rain {
+      font-size: 0.75rem;
+      color: var(--accent);
+      margin-top: 4px;
+    }
+
+    /* ---------- LOADER / ERROR ---------- */
+    .status {
+      text-align: center;
+      padding: 40px 0;
+      color: var(--text-dim);
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    /* ---------- RESPONSIVE ---------- */
+    @media (max-width: 600px) {
+      .big-temp { font-size: 2.4rem; }
+      .location-bar .city { font-size: 1.1rem; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <!-- HEADER -->
+    <header>
+      <div class="logo">🌙 DarkWeather</div>
+      <div class="search-box">
+        <input
+          id="cityInput"
+          type="text"
+          placeholder="Search city… (e.g. London)"
+          autocomplete="off"
+        />
+        <button id="searchBtn">Search</button>
+      </div>
+    </header>
+
+    <!-- LOCATION BAR -->
+    <div class="location-bar">
+      <span class="city" id="cityName">—</span>
+      <span id="cityCoords"></span>
+      <button class="btn-ghost" id="geoBtn" title="Use my location">
+        📍 My location
+      </button>
+    </div>
+
+    <!-- STATUS -->
+    <div id="status" class="status">Loading weather…</div>
+
+    <!-- MAIN CONTENT -->
+    <div id="content" class="hidden">
+      <!-- TOP CARDS: CURRENT + AIR QUALITY + ALERTS -->
+      <div class="grid">
+        <!-- CURRENT WEATHER -->
+        <div class="card">
+          <h2>Now</h2>
+          <div class="big-temp" id="currentTemp">—<span>°C</span></div>
+          <div id="currentDesc" style="color: var(--text-dim); margin-bottom: 10px;">—</div>
+          <div class="detail-row"><span>Feels like</span><span id="feelsLike">—</span></div>
+          <div class="detail-row"><span>Humidity</span><span id="humidity">—</span></div>
+          <div class="detail-row"><span>Wind</span><span id="wind">—</span></div>
+          <div class="detail-row"><span>UV index</span><span id="uvIndex">—</span></div>
+          <div class="detail-row"><span>Precipitation</span><span id="precip">—</span></div>
+        </div>
+
+        <!-- AIR QUALITY -->
+        <div class="card">
+          <h2>Air quality</h2>
+          <div id="aqiBadge" class="aqi-badge aqi-good">—</div>
+          <div class="detail-row"><span>PM2.5</span><span id="pm25">—</span></div>
+          <div class="detail-row"><span>PM10</span><span id="pm10">—</span></div>
+          <div class="detail-row"><span>O₃</span><span id="ozone">—</span></div>
+          <div class="detail-row"><span>NO₂</span><span id="no2">—</span></div>
+          <div class="detail-row"><span>SO₂</span><span id="so2">—</span></div>
+        </div>
+
+        <!-- ALERTS -->
+        <div class="card">
+          <h2>Weather alerts</h2>
+          <div id="alertsList">
+            <p class="no-alerts">No active alerts</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- 10-DAY FORECAST -->
+      <div class="forecast-section">
+        <h2>10‑day forecast</h2>
+        <div class="forecast-scroll" id="forecastScroll"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ============================================================
+    // CONFIGURATION
+    // ============================================================
+    const FORECAST_URL = 'https://api.open-meteo.com/v1/forecast';
+    const AIR_QUALITY_URL = 'https://air-quality-api.open-meteo.com/v1/air-quality';
+    const GEOCODING_URL = 'https://geocoding-api.open-meteo.com/v1/search';
+    const REVERSE_GEO_URL = 'https://api.bigdatacloud.net/data/reverse-geocode-client';
+
+    // Default location: London
+    let currentLat = 51.5074;
+    let currentLon = -0.1278;
+    let currentCityName = 'London';
+
+    // ============================================================
+    // DOM REFERENCES
+    // ============================================================
+    const cityInput = document.getElementById('cityInput');
+    const searchBtn = document.getElementById('searchBtn');
+    const geoBtn = document.getElementById('geoBtn');
+    const statusEl = document.getElementById('status');
+    const contentEl = document.getElementById('content');
+
+    const cityNameEl = document.getElementById('cityName');
+    const cityCoordsEl = document.getElementById('cityCoords');
+
+    // Current weather
+    const currentTempEl = document.getElementById('currentTemp');
+    const currentDescEl = document.getElementById('currentDesc');
+    const feelsLikeEl = document.getElementById('feelsLike');
+    const humidityEl = document.getElementById('humidity');
+    const windEl = document.getElementById('wind');
+    const uvIndexEl = document.getElementById('uvIndex');
+    const precipEl = document.getElementById('precip');
+
+    // Air quality
+    const aqiBadgeEl = document.getElementById('aqiBadge');
+    const pm25El = document.getElementById('pm25');
+    const pm10El = document.getElementById('pm10');
+    const ozoneEl = document.getElementById('ozone');
+    const no2El = document.getElementById('no2');
+    const so2El = document.getElementById('so2');
+
+    // Alerts
+    const alertsListEl = document.getElementById('alertsList');
+
+    // Forecast
+    const forecastScrollEl = document.getElementById('forecastScroll');
+
+    // ============================================================
+    // WEATHER CODE → DESCRIPTION / ICON
+    // ============================================================
+    const weatherCodeMap = {
+      0: { desc: 'Clear sky', icon: '☀️' },
+      1: { desc: 'Mainly clear', icon: '🌤️' },
+      2: { desc: 'Partly cloudy', icon: '⛅' },
+      3: { desc: 'Overcast', icon: '☁️' },
+      45: { desc: 'Fog', icon: '🌫️' },
+      48: { desc: 'Depositing rime fog', icon: '🌫️' },
+      51: { desc: 'Light drizzle', icon: '🌦️' },
+      53: { desc: 'Moderate drizzle', icon: '🌦️' },
+      55: { desc: 'Dense drizzle', icon: '🌧️' },
+      56: { desc: 'Light freezing drizzle', icon: '🌧️' },
+      57: { desc: 'Dense freezing drizzle', icon: '🌧️' },
+      61: { desc: 'Slight rain', icon: '🌦️' },
+      63: { desc: 'Moderate rain', icon: '🌧️' },
+      65: { desc: 'Heavy rain', icon: '🌧️' },
+      66: { desc: 'Light freezing rain', icon: '🌧️' },
+      67: { desc: 'Heavy freezing rain', icon: '🌧️' },
+      71: { desc: 'Slight snow', icon: '🌨️' },
+      73: { desc: 'Moderate snow', icon: '🌨️' },
+      75: { desc: 'Heavy snow', icon: '❄️' },
+      77: { desc: 'Snow grains', icon: '❄️' },
+      80: { desc: 'Slight rain showers', icon: '🌦️' },
+      81: { desc: 'Moderate rain showers', icon: '🌧️' },
+      82: { desc: 'Violent rain showers', icon: '⛈️' },
+      85: { desc: 'Slight snow showers', icon: '🌨️' },
+      86: { desc: 'Heavy snow showers', icon: '❄️' },
+      95: { desc: 'Thunderstorm', icon: '⛈️' },
+      96: { desc: 'Thunderstorm with slight hail', icon: '⛈️' },
+      99: { desc: 'Thunderstorm with heavy hail', icon: '⛈️' },
+    };
+
+    function weatherInfo(code) {
+      return weatherCodeMap[code] || { desc: 'Unknown', icon: '❓' };
+    }
+
+    // ============================================================
+    // HELPERS
+    // ============================================================
+    function formatDayName(dateStr) {
+      const d = new Date(dateStr);
+      return d.toLocaleDateString('en', { weekday: 'short' });
+    }
+
+    function formatDate(dateStr) {
+      const d = new Date(dateStr);
+      return d.toLocaleDateString('en', { month: 'short', day: 'numeric' });
+    }
+
+    function showStatus(msg) {
+      statusEl.textContent = msg;
+      statusEl.classList.remove('hidden');
+      contentEl.classList.add('hidden');
+    }
+
+    function hideStatus() {
+      statusEl.classList.add('hidden');
+      contentEl.classList.remove('hidden');
+    }
+
+    // ============================================================
+    // 1. FETCH FORECAST (current + 10 days)
+    // ============================================================
+    async function fetchForecast(lat, lon) {
+      const params = new URLSearchParams({
+        latitude: lat,
+        longitude: lon,
+        current: [
+          'temperature_2m',
+          'relative_humidity_2m',
+          'apparent_temperature',
+          'weather_code',
+          'wind_speed_10m',
+          'precipitation',
+          'uv_index'
+        ].join(','),
+        daily: [
+          'weather_code',
+          'temperature_2m_max',
+          'temperature_2m_min',
+          'precipitation_sum',
+          'precipitation_probability_max',
+          'wind_speed_10m_max',
+          'uv_index_max'
+        ].join(','),
+        forecast_days: 10,
+        timezone: 'auto',
+      });
+
+      const res = await fetch(`${FORECAST_URL}?${params}`);
+      if (!res.ok) throw new Error('Forecast request failed');
+      return res.json();
+    }
+
+    // ============================================================
+    // 2. FETCH AIR QUALITY
+    // ============================================================
+    async function fetchAirQuality(lat, lon) {
+      const params = new URLSearchParams({
+        latitude: lat,
+        longitude: lon,
+        current: [
+          'european_aqi',
+          'us_aqi',
+          'pm2_5',
+          'pm10',
+          'ozone',
+          'nitrogen_dioxide',
+          'sulphur_dioxide'
+        ].join(','),
+        timezone: 'auto',
+      });
+
+      const res = await fetch(`${AIR_QUALITY_URL}?${params}`);
+      if (!res.ok) throw new Error('Air quality request failed');
+      return res.json();
+    }
+
+    // ============================================================
+    // 3. GEOCODE CITY NAME → COORDINATES
+    // ============================================================
+    async function geocodeCity(name) {
+      const params = new URLSearchParams({ name, count: 1, language: 'en' });
+      const res = await fetch(`${GEOCODING_URL}?${params}`);
+      if (!res.ok) throw new Error('Geocoding failed');
+      const data = await res.json();
+      if (!data.results || data.results.length === 0) {
+        throw new Error('City not found');
+      }
+      const r = data.results[0];
+      return {
+        lat: r.latitude,
+        lon: r.longitude,
+        name: r.name,
+        country: r.country_code || '',
+      };
+    }
+
+    // ============================================================
+    // 4. REVERSE GEOCODE (coordinates → city name)
+    // ============================================================
+    async function reverseGeocode(lat, lon) {
+      const params = new URLSearchParams({
+        latitude: lat,
+        longitude: lon,
+        localityLanguage: 'en',
+      });
+      const res = await fetch(`${REVERSE_GEO_URL}?${params}`);
+      if (!res.ok) throw new Error('Reverse geocoding failed');
+      const data = await res.json();
+      // BigDataCloud returns city / locality / principalSubdivision
+      return data.city || data.locality || data.principalSubdivision || 'Unknown';
+    }
+
+    // ============================================================
+    // 5. DERIVE ALERTS FROM FORECAST DATA
+    // ============================================================
+    function deriveAlerts(forecast) {
+      const alerts = [];
+      const daily = forecast.daily;
+      if (!daily) return alerts;
+
+      // High temperature alert (>= 35 °C)
+      daily.temperature_2m_max.forEach((t, i) => {
+        if (t >= 35) {
+          alerts.push({
+            severity: 'severe',
+            icon: '🔥',
+            text: `Extreme heat on ${formatDate(daily.time[i])}: ${t}°C`,
+          });
+        } else if (t >= 30) {
+          alerts.push({
+            severity: 'warning',
+            icon: '🌡️',
+            text: `High temperature on ${formatDate(daily.time[i])}: ${t}°C`,
+          });
+        }
+      });
+
+      // Heavy rain alert (>= 20 mm)
+      daily.precipitation_sum.forEach((p, i) => {
+        if (p >= 20) {
+          alerts.push({
+            severity: 'severe',
+            icon: '🌧️',
+            text: `Heavy rain on ${formatDate(daily.time[i])}: ${p} mm`,
+          });
+        } else if (p >= 10) {
+          alerts.push({
+            severity: 'warning',
+            icon: '🌦️',
+            text: `Moderate rain on ${formatDate(daily.time[i])}: ${p} mm`,
+          });
+        }
+      });
+
+      // High wind alert (>= 60 km/h)
+      daily.wind_speed_10m_max.forEach((w, i) => {
+        if (w >= 60) {
+          alerts.push({
+            severity: 'severe',
+            icon: '💨',
+            text: `Strong wind on ${formatDate(daily.time[i])}: ${w} km/h`,
+          });
+        }
+      });
+
+      // High UV alert (>= 8)
+      daily.uv_index_max.forEach((u, i) => {
+        if (u >= 8) {
+          alerts.push({
+            severity: 'warning',
+            icon: '☀️',
+            text: `Very high UV on ${formatDate(daily.time[i])}: index ${u}`,
+          });
+        }
+      });
+
+      return alerts;
+    }
+
+    // ============================================================
+    // 6. RENDER UI
+    // ============================================================
+    function renderCurrent(forecast) {
+      const c = forecast.current;
+      const info = weatherInfo(c.weather_code);
+
+      currentTempEl.innerHTML = `${Math.round(c.temperature_2m)}<span>°C</span>`;
+      currentDescEl.textContent = info.desc;
+      feelsLikeEl.textContent = `${Math.round(c.apparent_temperature)}°C`;
+      humidityEl.textContent = `${c.relative_humidity_2m}%`;
+      windEl.textContent = `${c.wind_speed_10m} km/h`;
+      uvIndexEl.textContent = c.uv_index ?? '—';
+      precipEl.textContent = `${c.precipitation ?? 0} mm`;
+    }
+
+    function renderAirQuality(air) {
+      const c = air.current;
+      if (!c) {
+        aqiBadgeEl.textContent = 'No data';
+        return;
+      }
+
+      // Prefer European AQI, fallback to US AQI
+      const aqi = c.european_aqi ?? c.us_aqi;
+      if (aqi == null) {
+        aqiBadgeEl.textContent = 'No data';
+        aqiBadgeEl.className = 'aqi-badge';
+      } else {
+        let label, cls;
+        if (aqi <= 20) { label = 'Good'; cls = 'aqi-good'; }
+        else if (aqi <= 40) { label = 'Fair'; cls = 'aqi-fair'; }
+        else if (aqi <= 60) { label = 'Moderate'; cls = 'aqi-moderate'; }
+        else { label = 'Poor'; cls = 'aqi-poor'; }
+
+        aqiBadgeEl.textContent = `${label} (${aqi})`;
+        aqiBadgeEl.className = `aqi-badge ${cls}`;
+      }
+
+      pm25El.textContent = c.pm2_5 != null ? `${c.pm2_5} µg/m³` : '—';
+      pm10El.textContent = c.pm10 != null ? `${c.pm10} µg/m³` : '—';
+      ozoneEl.textContent = c.ozone != null ? `${c.ozone} µg/m³` : '—';
+      no2El.textContent = c.nitrogen_dioxide != null ? `${c.nitrogen_dioxide} µg/m³` : '—';
+      so2El.textContent = c.sulphur_dioxide != null ? `${c.sulphur_dioxide} µg/m³` : '—';
+    }
+
+    function renderAlerts(alerts) {
+      if (alerts.length === 0) {
+        alertsListEl.innerHTML = '<p class="no-alerts">✓ No active alerts</p>';
+        return;
+      }
+
+      alertsListEl.innerHTML = alerts
+        .map(
+          (a) => `
+          <div class="alert-item ${a.severity === 'severe' ? 'severe' : ''}">
+            <span class="icon">${a.icon}</span>
+            <span>${a.text}</span>
+          </div>
+        `
+        )
+        .join('');
+    }
+
+    function renderForecast(forecast) {
+      const d = forecast.daily;
+      forecastScrollEl.innerHTML = d.time
+        .map((date, i) => {
+          const info = weatherInfo(d.weather_code[i]);
+          const high = Math.round(d.temperature_2m_max[i]);
+          const low = Math.round(d.temperature_2m_min[i]);
+          const rainProb = d.precipitation_probability_max[i] ?? 0;
+
+          return `
+            <div class="day-card">
+              <div class="day-name">${formatDayName(date)}</div>
+              <div class="day-name" style="font-size:0.7rem;">${formatDate(date)}</div>
+              <div class="day-icon">${info.icon}</div>
+              <div class="day-high">${high}°</div>
+              <div class="day-low">${low}°</div>
+              <div class="day-rain">💧 ${rainProb}%</div>
+            </div>
+          `;
+        })
+        .join('');
+    }
+
+    function updateLocationDisplay(lat, lon, name) {
+      cityNameEl.textContent = name;
+      cityCoordsEl.textContent = `${lat.toFixed(3)}, ${lon.toFixed(3)}`;
+    }
+
+    // ============================================================
+    // 7. MAIN LOAD FUNCTION
+    // ============================================================
+    async function loadWeather(lat, lon, cityName) {
+      showStatus('Loading weather…');
+      updateLocationDisplay(lat, lon, cityName);
+
+      try {
+        // Fetch forecast and air quality in parallel
+        const [forecast, air] = await Promise.all([
+          fetchForecast(lat, lon),
+          fetchAirQuality(lat, lon),
+        ]);
+
+        // Render
+        renderCurrent(forecast);
+        renderAirQuality(air);
+
+        const alerts = deriveAlerts(forecast);
+        renderAlerts(alerts);
+
+        renderForecast(forecast);
+
+        hideStatus();
+      } catch (err) {
+        console.error(err);
+        showStatus(`⚠️ ${err.message}. Please try again.`);
+      }
+    }
+
+    // ============================================================
+    // 8. SEARCH / GEOLOCATION HANDLERS
+    // ============================================================
+    async function handleSearch() {
+      const query = cityInput.value.trim();
+      if (!query) return;
+
+      showStatus(`Searching for “${query}”…`);
+      try {
+        const { lat, lon, name, country } = await geocodeCity(query);
+        currentLat = lat;
+        currentLon = lon;
+        currentCityName = country ? `${name}, ${country}` : name;
+        await loadWeather(lat, lon, currentCityName);
+      } catch (err) {
+        showStatus(`⚠️ ${err.message}`);
+      }
+    }
+
+    async function handleGeolocation() {
+      if (!navigator.geolocation) {
+        showStatus('⚠️ Geolocation is not supported by your browser.');
+        return;
+      }
+
+      showStatus('Getting your location…');
+
+      navigator.geolocation.getCurrentPosition(
+        async (pos) => {
+          const lat = pos.coords.latitude;
+          const lon = pos.coords.longitude;
+          currentLat = lat;
+          currentLon = lon;
+
+          try {
+            const name = await reverseGeocode(lat, lon);
+            currentCityName = name;
+            await loadWeather(lat, lon, name);
+          } catch {
+            // If reverse geocoding fails, still show coordinates
+            await loadWeather(lat, lon, `${lat.toFixed(2)}, ${lon.toFixed(2)}`);
+          }
+        },
+        (err) => {
+          showStatus(`⚠️ Location error: ${err.message}`);
+        },
+        { enableHighAccuracy: true, timeout: 10000 }
+      );
+    }
+
+    // ============================================================
+    // 9. EVENT LISTENERS & INIT
+    // ============================================================
+    searchBtn.addEventListener('click', handleSearch);
+    cityInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') handleSearch();
+    });
+    geoBtn.addEventListener('click', handleGeolocation);
+
+    // Initial load (London)
+    window.addEventListener('DOMContentLoaded', () => {
+      loadWeather(currentLat, currentLon, currentCityName);
+    });
+  </script>
+</body>
+</html>
